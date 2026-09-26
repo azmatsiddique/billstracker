@@ -1,0 +1,100 @@
+Bill & Warranty Scanner – iOS App PRD
+26 Sept 2026 · @Azmat
+An iOS app that scans bills and receipts, tracks product warranties and free-service windows, and proactively reminds users before something expires or a free service/extended warranty opportunity is missed.
+Problem & Goals
+Users buy appliances and services (AC, fridge, gadgets, insurance, subscriptions) and get a paper or PDF bill. Most people:
+• Lose the physical bill, so they can't prove warranty or extended warranty coverage when something breaks.
+• Miss free service visits that come bundled with a purchase (e.g. AC gets 1-2 free services in year one).
+• Forget to buy extended warranty before the standard warranty lapses.
+• Have no single place tracking expiry dates across all their products.
+Goal: let a user scan any bill once, and have the app automatically extract the product, purchase date, warranty period, and any free-service or extended-warranty terms — then remind them before each deadline.
+Success looks like: a user never misses a free service window or a warranty renewal deadline again, without manually tracking dates.
+Target Users & Use Cases
+• Homeowners / renters with multiple appliances (AC, fridge, washing machine, TV, geyser) bought at different times.
+• Households managing family purchases — phones, laptops, gadgets bought for multiple family members.
+• Small business owners tracking equipment warranties (printers, ACs, POS machines) for office/shop.
+Core use cases:
+1. Scan a bill right after purchase and get all key dates auto-tracked.
+2. Get a push notification a few days before a free AMC (annual maintenance contract) service is due.
+3. Get a reminder before standard warranty ends, with an option to buy extended warranty.
+4. Search "which bills are still under warranty" in one tap, e.g. before selling or claiming a repair.
+5. Attach a photo of the physical bill as backup proof, so the paper copy can be discarded.
+Core Features
+Feature
+Description
+Bill scan (camera/photo)
+Capture a bill via camera or import from Photos/PDF/email; auto crop and enhance the image.
+OCR + data extraction
+Extract retailer name, product name/model, purchase date, amount, invoice number automatically.
+Warranty auto-detection
+Parse or infer standard warranty period (e.g. "1 year warranty") from the bill text or a product/brand lookup table when the bill doesn't state it.
+Free-service tracking
+Detect AMC/free-service terms (e.g. "2 free services within 1 year") and schedule reminders for each visit window.
+Extended warranty prompts
+Remind the user ~30/15/1 days before standard warranty ends, with a nudge to buy extended warranty; store extended warranty purchase separately, linked to the original bill.
+Manual entry / edit
+Let users fix any wrongly-extracted field, or add a bill manually without scanning.
+Product & bill library
+Searchable, filterable list of all bills/products with status tags: Active warranty, Expiring soon, Expired.
+Notifications
+Push reminders for services due, warranty expiring, and extended-warranty renewal windows.
+Document vault
+Store bill photo, warranty card photo, and extended warranty certificate against each product.
+Export/share
+Export a bill/warranty record as PDF to share with a service technician or for insurance claims.
+Key User Flow: Scan to Reminder
+1. User taps Scan Bill, photographs or imports the bill.
+2. App runs OCR and extracts: retailer, product, model, purchase date, amount, warranty terms (if printed).
+3. App shows an editable review screen with extracted fields pre-filled; user confirms or corrects.
+4. If warranty/free-service terms are not on the bill, app asks the user to pick the product category (AC, fridge, TV, etc.) and looks up typical warranty/AMC terms for that category/brand as a fallback, flagged as "estimated."
+5. App calculates and schedules reminder dates: free-service visit windows, warranty-expiry countdowns, extended-warranty decision window.
+6. Record saved to the product library with status = Active.
+7. As dates approach, app sends push notifications (e.g. "Your AC's free service is due this week" / "Fridge warranty expires in 15 days — consider extended warranty").
+8. User can tap a notification to view the bill, mark a service as completed, or add an extended-warranty purchase to the same record.
+Technical Approach
+iOS app: Swift + SwiftUI, targeting iOS 16+.
+Scanning & OCR:
+• Use VisionKit's VNDocumentCameraViewController for auto-crop and perspective correction of the bill photo.
+• Use Apple's on-device Vision framework (VNRecognizeTextRequest) for OCR — free, private, works offline.
+• For structured field extraction (retailer, amount, dates, warranty text) on top of raw OCR text, call an LLM (e.g. Claude via the Anthropic API) with the OCR text, prompted to return structured JSON — this handles varied bill formats better than regex.
+Warranty/AMC inference fallback: a small backend-maintained lookup table of typical warranty/AMC periods per product category and brand, used only when the bill itself doesn't state terms; results are always labeled "estimated, please confirm."
+Backend: a lightweight service (e.g. Firebase or a small Node/Postgres backend) to store user data, run the LLM extraction call server-side (keeps API keys off-device), and schedule notifications.
+Notifications: local UNUserNotificationCenter reminders scheduled on-device for reliability (no dependency on push infra for core reminders); optionally backed by server-side push for cross-device sync.
+Storage: bill/warranty images stored in iCloud or backend object storage (e.g. S3), encrypted at rest given the sensitive financial data involved.
+Data Model
+Entity
+Key fields
+Bill
+id, retailer, purchase_date, amount, invoice_number, image_url, category
+Product
+id, bill_id (FK), name, brand, model_number, category (AC/fridge/TV/etc.)
+Warranty
+id, product_id (FK), type (standard/extended), start_date, end_date, source ("from bill" / "estimated"), certificate_image_url
+FreeServiceSchedule
+id, product_id (FK), visit_number, due_date, status (pending/completed/missed)
+Reminder
+id, linked entity type + id, remind_at, message, status (scheduled/sent/dismissed)
+A product can have one standard Warranty and, later, one linked extended Warranty; a product can have zero or more FreeServiceSchedule rows.
+MVP Scope & Roadmap
+Phase
+Scope
+MVP (Phase 1)
+Bill scan + OCR + LLM field extraction, manual edit, warranty end-date reminders, product library, local push notifications.
+Phase 2
+Free-service/AMC schedule tracking, category-based warranty estimation fallback, document vault (photos of warranty cards).
+Phase 3
+Extended-warranty purchase tracking and renewal nudges, PDF export/share, search & filters by status.
+Phase 4
+Family sharing (shared household product library), email/inbox bill import, cross-device sync via backend.
+MVP is scoped to prove the core loop: scan a bill once, never miss the warranty-expiry date.
+Success Metrics
+• % of scanned bills where all key fields (product, date, warranty end) are extracted correctly without manual edit.
+• Number of free-service/warranty reminders that lead to a completed action (service booked, extended warranty bought) vs. dismissed.
+• Weekly active users who scan at least one bill per month (habit formation).
+• Retention at 90 days — a good proxy since warranty periods are long (months to years).
+Open Questions & Risks
+[ ] OCR accuracy on handwritten or low-quality bill photos — may need a manual-entry fallback UX from day one.
+[ ] Where does the category/brand warranty-estimation data come from — manually curated list vs. crowd-sourced vs. scraped from brand sites?
+[ ] Should extended warranty purchase be trackable even when bought from a third party (not the original retailer)?
+[ ] Privacy/security: bills contain personal financial data — needs encryption at rest and a clear data-retention policy.
+[ ] Monetization: free app, premium tier (unlimited scans, family sharing), or affiliate commission on extended-warranty purchases?

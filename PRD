@@ -87,6 +87,7 @@ Phase 4
 Family sharing (shared household product library), email/inbox bill import, cross-device sync via backend.
 MVP is scoped to prove the core loop: scan a bill once, never miss the warranty-expiry date.
 Success Metrics
+
 • % of scanned bills where all key fields (product, date, warranty end) are extracted correctly without manual edit.
 • Number of free-service/warranty reminders that lead to a completed action (service booked, extended warranty bought) vs. dismissed.
 • Weekly active users who scan at least one bill per month (habit formation).
